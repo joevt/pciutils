@@ -67,17 +67,25 @@ struct AddressSpaceParam {
 };
 typedef struct AddressSpaceParam AddressSpaceParam;
 
+static io_connect_t darwin_connect;
+
 static void
 darwin_config(struct pci_access *a UNUSED)
 {
+  /* config is called at launch */
+  darwin_connect = 0;
 }
 
 static int
 darwin_detect(struct pci_access *a)
 {
+  /* detect is called if the user does not specify an access method */
   io_registry_entry_t    service;
   io_connect_t           connect;
   kern_return_t          status;
+
+  if (darwin_connect)
+    return 1;
 
   service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleACPIPlatformExpert"));
   if (service)
@@ -88,17 +96,24 @@ darwin_detect(struct pci_access *a)
 
   if (!service || (kIOReturnSuccess != status))
     {
-      a->warning("Cannot open AppleACPIPlatformExpert (add boot arg debug=0x144 & run as root)");
+      a->debug("...cannot open AppleACPIPlatformExpert (add boot arg debug=0x144 & run as root)");
       return 0;
     }
   a->debug("...using AppleACPIPlatformExpert");
-  a->fd = connect;
+  darwin_connect = connect;
   return 1;
 }
 
 static void
 darwin_init(struct pci_access *a UNUSED)
 {
+  /* init is called after detect or when the user specifies this access method */
+  if (!darwin_connect)
+    {
+      darwin_detect(a);
+      a->debug("\n");
+    }
+  a->fd = darwin_connect;
 }
 
 static void
