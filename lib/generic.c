@@ -34,13 +34,30 @@ pci_generic_scan_bus(struct pci_access *a, byte *busmap, int bus)
 	  u32 vd = pci_read_long(t, PCI_VENDOR_ID);
 	  struct pci_dev *d;
 
-	  if (!vd || vd == 0xffffffff)
+	  if (!vd)
 	    continue;
+	  
+	  int hiding = 0;
+	  if (vd == 0xffffffff)
+	    {
+	      /*  some devices may hide themselves by setting their vendor and device ID to
+	       *  ffff:ffff so we check other registers
+	       */
+	      u32 command = pci_read_long(t, PCI_COMMAND);
+	      
+	      /* if command is also ffffffff then there's probably no device here */
+	      if (command == 0xffffffff)
+	        continue;
+	      
+	      /* if there is a command then assume there's a device here that is hiding itself */
+	      hiding = 1;
+	    }
 	  ht = pci_read_byte(t, PCI_HEADER_TYPE);
 	  if (!t->func)
 	    multi = ht & 0x80;
 	  ht &= 0x7f;
 	  d = pci_alloc_dev(a);
+	  d->hiding = hiding;
 	  d->bus = t->bus;
 	  d->dev = t->dev;
 	  d->func = t->func;
@@ -55,10 +72,12 @@ pci_generic_scan_bus(struct pci_access *a, byte *busmap, int bus)
 	      break;
 	    case PCI_HEADER_TYPE_BRIDGE:
 	    case PCI_HEADER_TYPE_CARDBUS:
-	      pci_generic_scan_bus(a, busmap, pci_read_byte(t, PCI_SECONDARY_BUS));
+	      if (!hiding)
+	        pci_generic_scan_bus(a, busmap, pci_read_byte(t, PCI_SECONDARY_BUS));
 	      break;
 	    default:
-	      a->debug("Device %04x:%02x:%02x.%d has unknown header type %02x.\n", d->domain, d->bus, d->dev, d->func, ht);
+	      if (!hiding)
+	        a->debug("Device %04x:%02x:%02x.%d has unknown header type %02x.\n", d->domain, d->bus, d->dev, d->func, ht);
 	    }
 	}
     }
