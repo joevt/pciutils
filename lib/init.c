@@ -180,6 +180,33 @@ pci_get_method_name(int index)
     return pci_methods[index]->name;
 }
 
+int
+pci_detect(struct pci_access *a, int detectall)
+{
+  int first_detected_method = -1;
+  unsigned int i;
+  
+  for (i=0; probe_sequence[i] >= 0; i++)
+    {
+      struct pci_methods *m = pci_methods[probe_sequence[i]];
+      if (!m)
+        continue;
+      a->debug("Trying method %s...", m->name);
+      if (m->detect(a))
+        {
+          a->debug("...OK\n");
+          first_detected_method = probe_sequence[i];
+          if (!detectall)
+            break;
+        }
+      else
+        a->debug("...No.\n");
+    }
+  if (first_detected_method < 0)
+    a->error("Cannot find any working access method.");
+  return first_detected_method;
+}
+
 struct pci_access *
 pci_alloc(void)
 {
@@ -187,6 +214,10 @@ pci_alloc(void)
   int i;
 
   memset(a, 0, sizeof(*a));
+  a->error = pci_generic_error;
+  a->warning = pci_generic_warn;
+  a->debug = pci_generic_debug;
+
   pci_set_name_list_path(a, PCI_PATH_IDS_DIR "/" PCI_IDS, 0);
 #ifdef PCI_USE_DNS
   pci_define_param(a, "net.domain", PCI_ID_DOMAIN, "DNS domain used for resolving of ID's");
@@ -205,42 +236,19 @@ pci_alloc(void)
 void
 pci_init_v35(struct pci_access *a)
 {
-  if (!a->error)
-    a->error = pci_generic_error;
-  if (!a->warning)
-    a->warning = pci_generic_warn;
-  if (!a->debug)
-    a->debug = pci_generic_debug;
   if (!a->debugging)
     a->debug = pci_null_debug;
 
   if (a->method)
     {
       if (a->method >= PCI_ACCESS_MAX || !pci_methods[a->method])
-	a->error("This access method is not supported.");
-      a->methods = pci_methods[a->method];
+        a->error("This access method is not supported.");
     }
   else
     {
-      unsigned int i;
-      for (i=0; probe_sequence[i] >= 0; i++)
-	{
-	  struct pci_methods *m = pci_methods[probe_sequence[i]];
-	  if (!m)
-	    continue;
-	  a->debug("Trying method %s...", m->name);
-	  if (m->detect(a))
-	    {
-	      a->debug("...OK\n");
-	      a->methods = m;
-	      a->method = probe_sequence[i];
-	      break;
-	    }
-	  a->debug("...No.\n");
-	}
-      if (!a->methods)
-	a->error("Cannot find any working access method.");
+      a->method = pci_detect(a, 0);
     }
+  a->methods = pci_methods[a->method];
   a->debug("Decided to use %s\n", a->methods->name);
   a->methods->init(a);
 }

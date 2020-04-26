@@ -67,6 +67,11 @@ set_pci_method(struct pci_access *pacc, char *arg)
 	  printf("%s\n", name);
       exit(0);
     }
+  else if (!strcmp(arg, "detect"))
+    {
+      pci_detect(pacc, 1);
+      exit(0);
+    }
   else
     {
       i = pci_lookup_method(arg);

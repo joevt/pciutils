@@ -42,7 +42,7 @@ int parse_generic_option(int i, struct pci_access *pacc, char *arg);
 
 #define GENERIC_OPTIONS "A:GO:" GENOPT_INTEL GENOPT_DUMP
 #define GENERIC_HELP \
-	"-A <method>\tUse the specified PCI access method (see `-A help' for a list)\n" \
+	"-A <method>\tUse the specified PCI access method (see `-A help' or `-A detect' for a list)\n" \
 	"-O <par>=<val>\tSet PCI access parameter (see `-O help' for a list)\n" \
 	"-G\t\tEnable PCI access debugging\n" \
 	GENHELP_INTEL GENHELP_DUMP

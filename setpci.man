@@ -73,8 +73,8 @@ influence its behavior:
 .B -A <method>
 The library supports a variety of methods to access the PCI hardware.
 By default, it uses the first access method available, but you can use
-this option to override this decision. See \fB-A help\fP for a list of
-available methods and their descriptions.
+this option to override this decision. See \fB-A help\fP or \fB-A detect\fP
+for a list of available methods and their descriptions.
 .TP
 .B -O <param>=<value>
 The behavior of the library is controlled by several named parameters.
