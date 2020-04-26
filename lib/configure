@@ -97,11 +97,13 @@ case $sys in
 		LIBRESOLV=
 		;;
 
-        darwin*)
-	        echo_n " darwin"
+	darwin*)
+		echo_n " darwin"
 		echo >>$c '#define PCI_HAVE_PM_DARWIN_DEVICE'
 		echo >>$m 'WITH_LIBS+=-lresolv -framework CoreFoundation -framework IOKit'
 		echo >>$c '#define PCI_HAVE_64BIT_ADDRESS'
+		echo_n " i386-ports"
+		echo >>$c '#define PCI_HAVE_PM_INTEL_CONF'
 		LIBRESOLV=
 		LIBEXT=dylib
 		;;
